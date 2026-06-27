@@ -641,292 +641,331 @@ local CharacterStats = {
 }
 
 
+-- ==================================================
+-- ===== ESP FUNCTIONS (FIXED) =====
+-- ==================================================
 
+-- ESP objects storage
+local ESPObjects = {}
 
-
-
-
-
-
+-- ===== GET PLAYER ROLE =====
 local function GetPlayerRole(player)
-
     local char = player.Character
-
-    if not char then return nil end
-
+    if not char then return "Innocent" end
     
-
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            if tool.Name == "Knife" then return "Murderer" end
+            if tool.Name == "Gun" then return "Sheriff" end
+        end
+    end
+    
     local backpack = player:FindFirstChild("Backpack")
-
-    
-
-    
-
-    if char:FindFirstChild("Knife") or (backpack and backpack:FindFirstChild("Knife")) then
-
-        return "Murderer"
-
-    end
-
-    
-
-    
-
-    if char:FindFirstChild("Gun") or (backpack and backpack:FindFirstChild("Gun")) then
-
-        return "Sheriff"
-
-    end
-
-    
-
-    return "Innocent"
-
-end
-
-
-
-local function ShouldHighlightPlayer(player, filters)
-
-    local role = GetPlayerRole(player)
-
-    if not role then return false end
-
-    
-
-    if table.find(filters, "Esp All") then
-
-        return true
-
-    end
-
-    
-
-    if table.find(filters, "Esp Murder") and role == "Murderer" then
-
-        return true
-
-    end
-
-    
-
-    if table.find(filters, "Esp Sheriff") and role == "Sheriff" then
-
-        return true
-
-    end
-
-    
-
-    if table.find(filters, "Esp Sheriff / Murder") and (role == "Sheriff" or role == "Murderer") then
-
-        return true
-
-    end
-
-    
-
-    return false
-
-end
-
-
-
-local function CreateHighlight(character, color)
-
-    local highlight = character:FindFirstChild("RoleHighlight")
-
-    
-
-    if not highlight then
-
-        highlight = Instance.new("Highlight")
-
-        highlight.Name = "RoleHighlight"
-
-        highlight.FillTransparency = 0.5
-
-        highlight.OutlineTransparency = 1
-
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-
-        highlight.Adornee = character
-
-        highlight.Parent = character
-
-    end
-
-    
-
-    highlight.FillColor = color
-
-end
-
-
-
-local function RemoveHighlight(character)
-
-    local highlight = character:FindFirstChild("RoleHighlight")
-
-    if highlight then
-
-        highlight:Destroy()
-
-    end
-
-end
-
-
-
-local function CreateLineESP(player, color)
-
-    local line = Drawing.new("Line")
-
-    line.Thickness = 2
-
-    line.Color = color or Color3.new(1, 1, 1)
-
-    line.Transparency = 1
-
-    lineESPObjects[player] = line
-
-end
-
-
-
-local function RemoveLineESP(player)
-
-    if lineESPObjects[player] then
-
-        lineESPObjects[player]:Remove()
-
-        lineESPObjects[player] = nil
-
-    end
-
-end
-
-
-
-local function UpdateESP()
-
-    murdererFound = false
-
-    sheriffFound = false
-
-    
-
-    
-
-    for _, player in ipairs(Players:GetPlayers()) do
-
-        if player ~= LocalPlayer and player.Character then
-
-            local role = GetPlayerRole(player)
-
-            if role == "Murderer" then
-
-                murdererFound = true
-
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                if tool.Name == "Knife" then return "Murderer" end
+                if tool.Name == "Gun" then return "Sheriff" end
             end
-
-            if role == "Sheriff" then
-
-                sheriffFound = true
-
-            end
-
         end
-
     end
-
     
-
-    
-
-    for _, player in ipairs(Players:GetPlayers()) do
-
-        if player ~= LocalPlayer and player.Character then
-
-            local role = GetPlayerRole(player)
-
-            local shouldHighlight = ShouldHighlightPlayer(player, espFilters)
-
-            local highlightColor = nil
-
-            
-
-            
-
-            if highlightEnabled then
-
-                if shouldHighlight then
-
-                    if role == "Murderer" then
-
-                        highlightColor = Colors.Blood
-
-                    elseif role == "Sheriff" then
-
-                        highlightColor = Colors.Toxic or Colors.Orange
-
+    -- Check game modules
+    pcall(function()
+        local Modules = ReplicatedStorage:FindFirstChild("Modules")
+        if Modules then
+            local CurrentRound = Modules:FindFirstChild("CurrentRoundClient")
+            if CurrentRound then
+                local data = require(CurrentRound)
+                if data and data.PlayerData then
+                    local playerData = data.PlayerData[player.Name]
+                    if playerData then
+                        return playerData.Role or "Innocent"
                     end
-
-                    
-
-                    CreateHighlight(player.Character, highlightColor)
-
-                else
-
-                    RemoveHighlight(player.Character)
-
                 end
-
-            else
-
-                RemoveHighlight(player.Character)
-
             end
-
-            
-
-            
-
-            if lineESPEnabled and shouldHighlight then
-
-                if role == "Murderer" then
-
-                    highlightColor = Colors.Blood
-
-                elseif role == "Sheriff" then
-
-                    highlightColor = Colors.Toxic or Colors.Orange
-
-                end
-
-                
-
-                if not lineESPObjects[player] then
-
-                    CreateLineESP(player, highlightColor)
-
-                else
-
-                    lineESPObjects[player].Color = highlightColor
-
-                end
-
-            else
-
-                RemoveLineESP(player)
-
-            end
-
         end
-
-    end
-
+    end)
+    
+    return "Innocent"
 end
+
+-- ===== CHECK IF PLAYER IS ALIVE =====
+local function IsPlayerAlive(player)
+    local char = player.Character
+    if not char then return false end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    return humanoid and humanoid.Health > 0
+end
+
+-- ===== GET DISTANCE =====
+local function GetPlayerDistance(player)
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local targetRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if myRoot and targetRoot then
+        return math.floor((myRoot.Position - targetRoot.Position).Magnitude)
+    end
+    return 0
+end
+
+-- ===== GET PLAYER WEAPON =====
+local function GetPlayerWeapon(player)
+    local char = player.Character
+    if char then
+        local tool = char:FindFirstChildOfClass("Tool")
+        if tool then return tool.Name end
+    end
+    return "None"
+end
+
+-- ===== SHOULD HIGHLIGHT =====
+local function ShouldHighlightPlayer(player, filters)
+    local role = GetPlayerRole(player)
+    if not role then return false end
+    
+    if not Settings.ESP.Enabled then return false end
+    
+    for _, filter in ipairs(filters) do
+        if filter == "Esp All" then
+            return true
+        elseif filter == "Esp Murderer" and role == "Murderer" then
+            return Settings.ESP.Murderer ~= false
+        elseif filter == "Esp Sheriff" and role == "Sheriff" then
+            return Settings.ESP.Sheriff ~= false
+        elseif filter == "Esp Murderer / Sheriff" and (role == "Murderer" or role == "Sheriff") then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- ===== CREATE HIGHLIGHT =====
+local function CreateHighlight(character, color)
+    if not character then return end
+    
+    local highlight = character:FindFirstChild("RoleHighlight")
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.Name = "RoleHighlight"
+        highlight.FillTransparency = 0.4
+        highlight.OutlineTransparency = 0.2
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Adornee = character
+        highlight.Parent = character
+    end
+    
+    highlight.FillColor = color
+    highlight.Enabled = true
+end
+
+-- ===== REMOVE HIGHLIGHT =====
+local function RemoveHighlight(character)
+    if not character then return end
+    local highlight = character:FindFirstChild("RoleHighlight")
+    if highlight then
+        highlight:Destroy()
+    end
+end
+
+-- ===== CREATE LINE ESP =====
+local function CreateLineESP(player, color)
+    if not Drawing then return end
+    
+    local line = Drawing.new("Line")
+    line.Thickness = 2
+    line.Color = color or Color3.new(1, 1, 1)
+    line.Transparency = 0.8
+    lineESPObjects[player] = line
+end
+
+-- ===== REMOVE LINE ESP =====
+local function RemoveLineESP(player)
+    if lineESPObjects[player] then
+        pcall(function() lineESPObjects[player]:Remove() end)
+        lineESPObjects[player] = nil
+    end
+end
+
+-- ===== REMOVE ALL ESP FOR PLAYER =====
+local function RemoveESP(player)
+    if not player then return end
+    
+    if player.Character then
+        RemoveHighlight(player.Character)
+    end
+    
+    RemoveLineESP(player)
+    
+    if ESPObjects[player] then
+        pcall(function()
+            ESPObjects[player].Billboard:Destroy()
+        end)
+        ESPObjects[player] = nil
+    end
+end
+
+-- ===== UPDATE ESP (MAIN LOOP) =====
+local function UpdateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then goto continue end
+        
+        local char = player.Character
+        if not char then 
+            RemoveESP(player)
+            goto continue
+        end
+        
+        local role = GetPlayerRole(player)
+        local isAlive = IsPlayerAlive(player)
+        local shouldHighlight = ShouldHighlightPlayer(player, espFilters)
+        
+        local highlightColor = Colors.RoleGreen
+        if role == "Murderer" then
+            highlightColor = Colors.RoleRed
+        elseif role == "Sheriff" then
+            highlightColor = Colors.RoleBlue
+        end
+        
+        if highlightEnabled and Settings.ESP.Enabled and shouldHighlight and isAlive then
+            CreateHighlight(char, highlightColor)
+        else
+            RemoveHighlight(char)
+        end
+        
+        if lineESPEnabled and Settings.ESP.Enabled and shouldHighlight and isAlive then
+            if not lineESPObjects[player] then
+                CreateLineESP(player, highlightColor)
+            else
+                lineESPObjects[player].Color = highlightColor
+            end
+        else
+            RemoveLineESP(player)
+        end
+        
+        if Settings.ESP.Enabled and shouldHighlight and isAlive then
+            local esp = ESPObjects[player]
+            if not esp then
+                esp = {}
+                
+                local billboard = Instance.new("BillboardGui")
+                billboard.Size = UDim2.new(0, 150, 0, 40)
+                billboard.AlwaysOnTop = true
+                billboard.MaxDistance = 400
+                billboard.ExtentsOffset = Vector3.new(0, 2.5, 0)
+                billboard.Parent = CoreGui
+                
+                local nameLabel = Instance.new("TextLabel")
+                nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.TextColor3 = Colors.Text
+                nameLabel.Font = Enum.Font.GothamBold
+                nameLabel.TextSize = 11
+                nameLabel.TextStrokeTransparency = 0
+                nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                nameLabel.Parent = billboard
+                
+                local weaponLabel = Instance.new("TextLabel")
+                weaponLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                weaponLabel.Position = UDim2.new(0, 0, 0.5, 0)
+                weaponLabel.BackgroundTransparency = 1
+                weaponLabel.TextColor3 = Colors.AccentLight
+                weaponLabel.Font = Enum.Font.GothamBold
+                weaponLabel.TextSize = 10
+                weaponLabel.TextStrokeTransparency = 0
+                weaponLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                weaponLabel.Parent = billboard
+                
+                esp.Billboard = billboard
+                esp.NameLabel = nameLabel
+                esp.WeaponLabel = weaponLabel
+                ESPObjects[player] = esp
+            end
+            
+            local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head")
+            if root then
+                esp.Billboard.Adornee = root
+                esp.Billboard.Enabled = true
+                
+                local dist = GetPlayerDistance(player)
+                local weapon = GetPlayerWeapon(player)
+                
+                if Settings.ESP.ShowDistance then
+                    esp.NameLabel.Text = string.format("%s (%s) [%dm]", player.DisplayName, role, dist)
+                else
+                    esp.NameLabel.Text = string.format("%s (%s)", player.DisplayName, role)
+                end
+                
+                if Settings.ESP.ShowWeapons and weapon ~= "None" then
+                    esp.WeaponLabel.Text = "🔫 " .. weapon
+                    esp.WeaponLabel.Visible = true
+                else
+                    esp.WeaponLabel.Visible = false
+                end
+            else
+                esp.Billboard.Enabled = false
+            end
+        else
+            if ESPObjects[player] then
+                pcall(function()
+                    ESPObjects[player].Billboard:Destroy()
+                end)
+                ESPObjects[player] = nil
+            end
+        end
+        
+        ::continue::
+    end
+    
+    for player, esp in pairs(ESPObjects) do
+        if not player or not player.Parent then
+            pcall(function()
+                esp.Billboard:Destroy()
+            end)
+            ESPObjects[player] = nil
+        end
+    end
+end
+
+-- ===== ESP UPDATE LOOP =====
+task.spawn(function()
+    while wait(0.3) do
+        pcall(UpdateESP)
+    end
+end)
+
+-- ===== LINE ESP RENDER LOOP =====
+if Drawing then
+    RunService.RenderStepped:Connect(function()
+        for player, line in pairs(lineESPObjects) do
+            if line and player and player.Character then
+                local head = player.Character:FindFirstChild("Head")
+                local myHead = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head")
+                if head and myHead then
+                    local pos1, onScreen1 = Camera:WorldToViewportPoint(head.Position)
+                    local pos2, onScreen2 = Camera:WorldToViewportPoint(myHead.Position)
+                    if onScreen1 and onScreen2 then
+                        line.From = Vector2.new(pos2.X, pos2.Y)
+                        line.To = Vector2.new(pos1.X, pos1.Y)
+                        line.Visible = true
+                    else
+                        line.Visible = false
+                    end
+                else
+                    line.Visible = false
+                end
+            end
+        end
+    end)
+end
+
+-- ===== INITIAL ESP UPDATE =====
+task.wait(1)
+UpdateESP()
+
+print("✅ ESP System Loaded!")
+
+
 
 
 
@@ -5181,106 +5220,13 @@ SheriffTab:Dropdown({
 SheriffTab:Space()
 
 SheriffTab:Toggle({
-
-    Title = "Shoot Murderer",
-
-    Icon = "crosshair",
-
-    Color = Colors.Toxic,
-
-    Justify = "Center",
-
+    Title = "Show Shoot Button",
+    Desc = "Show floating Shoot button on screen",
+    Default = true,
     Callback = function(value)
-
-        local coreGui = CoreGui
-
-        
-
-        if value and not coreGui:FindFirstChild("GunW") then
-
-            local screenGui = Instance.new("ScreenGui", coreGui)
-
-            screenGui.Name = "GunW"
-
-            
-
-            local button = Instance.new("TextButton", screenGui)
-
-            button.Draggable = true
-
-            button.Size = UDim2.new(0, 200, 0, 100)
-
-            button.Position = UDim2.new(0.5, -100, 0.5, 0)
-
-            button.TextStrokeTransparency = 0
-
-            button.BackgroundTransparency = 0.2
-
-            button.BackgroundColor3 = Color3.fromRGB(44, 44, 45)
-
-            button.BorderColor3 = Color3.new(1, 1, 1)
-
-            button.Text = "Shoot Murder"
-
-            button.TextColor3 = Color3.new(1, 1, 1)
-
-            button.TextSize = 20
-
-            button.Visible = true
-
-            button.AnchorPoint = Vector2.new(0.5, 0.5)
-
-            button.Active = true
-
-            button.TextWrapped = true
-
-            
-
-            local corner = Instance.new("UICorner", button)
-
-            local stroke = Instance.new("UIStroke", button)
-
-            stroke.Color = Color3.new(0, 0, 0)
-
-            stroke.Thickness = 4
-
-            stroke.Transparency = 0.4
-
-            
-
-            button.MouseButton1Click:Connect(function()
-
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Gun") then
-
-                    pcall(function()
-
-                        LocalPlayer.Character.Gun.KnifeLocal.CreateBeam.RemoteFunction:InvokeServer(
-
-                            1,
-
-                            getMurdererTarget(),
-
-                            "AH2"
-
-                        )
-
-                    end)
-
-                end
-
-            end)
-
-        elseif coreGui:FindFirstChild("GunW") then
-
-            coreGui:FindFirstChild("GunW"):Destroy()
-
-        end
-
+        ShootGui.Enabled = value
     end,
-
 })
-
-
 
 
 
@@ -6101,4 +6047,240 @@ print("📌 Press Z to shoot")
 print("📌 Target Mode: " .. TargetSettings.Mode)
 
 
+-- ==================================================
+-- ===== SHOOT BUTTON WITH POSITION LOCK =====
+-- ==================================================
+
+-- Create a small GUI button for shooting
+local ShootGui = Instance.new("ScreenGui")
+ShootGui.Name = "ShootGUI"
+ShootGui.Parent = CoreGui
+ShootGui.Enabled = true
+
+-- ===== SHOOT BUTTON =====
+local ShootBtn = Instance.new("TextButton")
+ShootBtn.Size = UDim2.new(0, 80, 0, 40)
+ShootBtn.Position = UDim2.new(0.5, -40, 0.92, 0)
+ShootBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ShootBtn.Text = "🔫 SHOOT"
+ShootBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShootBtn.TextScaled = true
+ShootBtn.Font = Enum.Font.GothamBold
+ShootBtn.AutoButtonColor = false
+ShootBtn.Draggable = true
+ShootBtn.Active = true
+ShootBtn.Selectable = true
+ShootBtn.Parent = ShootGui
+
+local shootCorner = Instance.new("UICorner")
+shootCorner.CornerRadius = UDim.new(0, 10)
+shootCorner.Parent = ShootBtn
+
+-- ===== LOCK BUTTON (Small) =====
+local LockBtn = Instance.new("TextButton")
+LockBtn.Size = UDim2.new(0, 25, 0, 25)
+LockBtn.Position = UDim2.new(1, 3, 0.5, -12.5)
+LockBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+LockBtn.Text = "🔒"
+LockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LockBtn.TextScaled = true
+LockBtn.Font = Enum.Font.GothamBold
+LockBtn.AutoButtonColor = false
+LockBtn.Draggable = false
+LockBtn.Parent = ShootGui
+
+local lockCorner = Instance.new("UICorner")
+lockCorner.CornerRadius = UDim.new(0, 6)
+lockCorner.Parent = LockBtn
+
+-- ===== POSITION LOCK STATE =====
+local isPositionLocked = false
+local savedPosition = ShootBtn.Position
+
+-- ===== DRAG DETECTION =====
+local isDragging = false
+local dragStart = nil
+local startPos = nil
+
+ShootBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = true
+        dragStart = input.Position
+        startPos = ShootBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+                -- Snap to position if locked
+                if isPositionLocked then
+                    ShootBtn.Position = savedPosition
+                end
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if not isPositionLocked then
+            local delta = input.Position - dragStart
+            ShootBtn.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+            -- Also move LockBtn with it
+            LockBtn.Position = UDim2.new(1, 3, 0.5, -12.5)
+        end
+    end
+end)
+
+-- ===== LOCK POSITION BUTTON =====
+LockBtn.MouseButton1Click:Connect(function()
+    isPositionLocked = not isPositionLocked
+    
+    if isPositionLocked then
+        savedPosition = ShootBtn.Position
+        LockBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+        LockBtn.Text = "🔓"
+        -- Lock the button position
+        ShootBtn.Draggable = false
+        WindUI:Notify({
+            Title = "🔒 Position Locked",
+            Content = "Button position saved!",
+            Icon = "lock",
+            Duration = 2,
+        })
+    else
+        LockBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        LockBtn.Text = "🔒"
+        ShootBtn.Draggable = true
+        WindUI:Notify({
+            Title = "🔓 Position Unlocked",
+            Content = "You can drag the button again",
+            Icon = "unlock",
+            Duration = 2,
+        })
+    end
+end)
+
+-- ===== SHOOT FUNCTION =====
+local function ShootTarget()
+    local target = AimbotState.Target or AimbotState.LockedTarget or GetTargetOnScreen()
+    
+    if not target then
+        WindUI:Notify({
+            Title = "Shoot Error",
+            Content = "No target found!",
+            Icon = "x-circle",
+            Duration = 2,
+        })
+        return
+    end
+    
+    local char = target.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then
+        WindUI:Notify({
+            Title = "Shoot Error",
+            Content = "Target is dead!",
+            Icon = "x-circle",
+            Duration = 2,
+        })
+        return
+    end
+    
+    local playerChar = LocalPlayer.Character
+    if not playerChar then return end
+    
+    local gun = playerChar:FindFirstChild("Gun")
+    if not gun then
+        local backpack = LocalPlayer.Backpack
+        if backpack then
+            gun = backpack:FindFirstChild("Gun")
+            if gun then
+                gun.Parent = playerChar
+                task.wait(0.1)
+                gun = playerChar:FindFirstChild("Gun")
+            end
+        end
+    end
+    
+    if gun then
+        local myRoot = playerChar:FindFirstChild("HumanoidRootPart")
+        local targetRoot = char:FindFirstChild("HumanoidRootPart")
+        if myRoot and targetRoot then
+            local dist = (myRoot.Position - targetRoot.Position).Magnitude
+            if dist > 50 then
+                myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -5)
+                task.wait(0.1)
+            end
+        end
+        
+        -- Aim at target
+        local head = char:FindFirstChild("Head")
+        if head then
+            local targetPos = head.Position
+            local camPos = Camera.CFrame.Position
+            local lookAt = (targetPos - camPos).Unit
+            local newCFrame = CFrame.new(camPos, camPos + lookAt)
+            Camera.CFrame = newCFrame
+        end
+        
+        gun:Activate()
+        task.wait(0.15)
+        gun:Deactivate()
+        
+        local role = GetPlayerRole(target)
+        WindUI:Notify({
+            Title = "🔫 Shot Fired!",
+            Content = "Shot " .. target.Name .. " (" .. role .. ")",
+            Icon = "check-circle",
+            Duration = 2,
+        })
+    else
+        WindUI:Notify({
+            Title = "Shoot Error",
+            Content = "No gun found!",
+            Icon = "x-circle",
+            Duration = 2,
+        })
+    end
+end
+
+ShootBtn.MouseButton1Click:Connect(function()
+    ShootTarget()
+end)
+
+-- ==================================================
+-- ===== HOVER EFFECTS =====
+-- ==================================================
+ShootBtn.MouseEnter:Connect(function()
+    if not isPositionLocked then
+        TweenService:Create(ShootBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
+    end
+end)
+
+ShootBtn.MouseLeave:Connect(function()
+    if not isPositionLocked then
+        TweenService:Create(ShootBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(255, 0, 0)}):Play()
+    end
+end)
+
+LockBtn.MouseEnter:Connect(function()
+    TweenService:Create(LockBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 255, 150)}):Play()
+end)
+
+LockBtn.MouseLeave:Connect(function()
+    TweenService:Create(LockBtn, TweenInfo.new(0.15), {
+        BackgroundColor3 = isPositionLocked and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(0, 200, 100)
+    }):Play()
+end)
+
+print("✅ Shoot Button with Position Lock Loaded!")
+print("📌 Drag the button to any position")
+print("📌 Click 🔒 to lock the position")
+print("📌 Click 🔓 to unlock and drag again")
 
