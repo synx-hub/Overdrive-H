@@ -265,49 +265,37 @@ local MarketplaceService = game:GetService("MarketplaceService")
 
 
 local Colors = {
-
     Orange = Color3.fromHex("#FF6B1A"),
-
     DarkOrange = Color3.fromHex("#FF4500"),
-
     Purple = Color3.fromHex("#9D4EDD"),
-
     DarkPurple = Color3.fromHex("#5A189A"),
-
     Blood = Color3.fromHex("#8B0000"),
-
     Ghost = Color3.fromHex("#E0E0E0"),
-
     Pumpkin = Color3.fromHex("#FF7518"),
-
     Witch = Color3.fromHex("#6B2E8A"),
-
     Midnight = Color3.fromHex("#0D0221"),
-
     Toxic = Color3.fromHex("#39FF14"),
-
     Red = Color3.fromHex("#FF0000"),
-
     Green = Color3.fromHex("#00FF00"),
-
     Gold = Color3.fromHex("#FFD700"),
-
     Silver = Color3.fromHex("#C0C0C0"),
-
     Blue = Color3.fromHex("#1E90FF"),
-
     Innocent = Color3.fromHex("#39FF14"),
-
     Sheriff = Color3.fromHex("#001e80"),
-
     Murder = Color3.fromHex("#e80909"),
-
+    -- ESP Colors
+    RoleRed = Color3.fromRGB(255, 72, 99),
+    RoleBlue = Color3.fromRGB(72, 152, 255),
+    RoleGreen = Color3.fromRGB(72, 207, 130),
+    -- Text Colors
+    Text = Color3.fromRGB(240, 238, 255),
+    TextDark = Color3.fromRGB(150, 145, 170),
+    TextMuted = Color3.fromRGB(100, 95, 120),
+    -- Accent Colors
+    AccentLight = Color3.fromRGB(175, 130, 255),
+    Accent = Color3.fromRGB(138, 84, 255),
+    AccentDark = Color3.fromRGB(95, 52, 190),
 }
-
-
-
-
-
 
 
 local function CreateGradientText(text, color1, color2)
