@@ -152,10 +152,10 @@ end)
 --==================================================
 -- ANTI DUPLICATE (SESSION)
 --==================================================
-if _G.__KUNI_LOGGED then
+if _G.__SYNTAX_LOGGED then
     return
 end
-_G.__KUNI_LOGGED = true
+_G.__SYNTAX_LOGGED = true
 
 --==================================================
 -- WEBHOOK SEND
@@ -436,7 +436,7 @@ repeat task.wait() until popupClosed
 
 local Window = WindUI:CreateWindow({
 
-    Title = CreateGradientText("Benjo Hub | Murder Mystery 2", Colors.Red, Colors.Green),
+    Title = CreateGradientText("Syntax Hub | Murder Mystery 2", Colors.Red, Colors.Green),
 
     Author = "by syntax ",
 
