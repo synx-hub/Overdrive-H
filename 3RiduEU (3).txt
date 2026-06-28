@@ -297,25 +297,6 @@ local Colors = {
     AccentDark = Color3.fromRGB(95, 52, 190),
 }
 
--- ===== UI HELPERS =====
-local function CreateCorner(obj, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = obj
-    return corner
-end
-
-local function CreateStroke(obj, color, thickness, transparency)
-    pcall(function()
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = color or Color3.fromRGB(48, 42, 68)
-        stroke.Thickness = thickness or 1
-        stroke.Transparency = transparency or 0
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Parent = obj
-    end)
-    return nil
-end
 
 local function CreateGradientText(text, color1, color2)
 
